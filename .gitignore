@@ -154,3 +154,4 @@ log.txt
 work_extractGame/output_lua
 output_lua
 *.lwp
+*.bak
