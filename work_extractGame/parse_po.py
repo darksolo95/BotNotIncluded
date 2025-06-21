@@ -13,7 +13,7 @@ logger = utils.getLogger('parse_po')
 class SubTags:
     @staticmethod
     def strip_link(x):
-        return re.sub(r'<link="(\w+)">(.*?)</link>', r'\g<1>', x)
+        return re.sub(r'<link="(.+?)">(.*?)</link>', r'\g<1>', x)
 
     lang2col = {
         "en": "id",
@@ -39,29 +39,40 @@ class SubTags:
         # set links
         self.links = {}
         for _, r_data in df.iterrows():
-            r_zh = r_data.string
-            r_match = re.match(r'^<link="(.+?)">(.*?)</link>$', r_zh)
-            if r_match is None:
-                continue
-
-            if r_match.group(1) not in self.links:
-                self.links[r_match.group(1)] = r_match.group(2)
-            else:
-                logger.info(
-                    f"Duplicated link key detected: {r_match.group(1)}")
-                self.links[r_match.group(1)] = False  # make sure to be unique
+            for lang in ["en", "zh", "zh-hant"]:
+                if lang not in self.links:
+                    self.links[lang] = {}
+                r_str = r_data[self.lang2col[lang]]
+                if pd.isna(r_str):
+                    continue
+                # logger.debug(f"Processing link in {lang}: {r_str}")
+                for r_match in re.finditer(r'<link="(.+?)">(.*?)</link>', r_str):
+                    if r_match is None:
+                        continue
+                    # logger.debug(f"Found link: {r_match.group(1)} -> {r_match.group(2)}")
+                    if r_match.group(1) not in self.links[lang]:
+                        self.links[lang][r_match.group(1)] = r_match.group(2)
+                    else:
+                        # logger.info(
+                        #     f"Duplicated link key detected: {r_match.group(1)} <- {r_match.group(2)}")
+                        self.links[lang][r_match.group(1)] = False  # make sure to be unique
         # Use codex title if there is some duplications
         for _, r_data in df[df.context.str.match(r'^STRINGS\.CODEX\.\w+\.TITLE$')].iterrows():
-            r_zh = r_data.string
-            r_match = re.match(r'^<link="(.+?)">(.*?)</link>$', r_zh)
-            if r_match is None:
-                continue
-            match_id = r_match.group(1)
-            if match_id in self.links and self.links[match_id] is False:
-                logger.info(f"Use codex title: {match_id}")
-                self.links[match_id] = r_match.group(2)
+            for lang in ["en", "zh", "zh-hant"]:
+                r_str = r_data[self.lang2col[lang]]
+                if pd.isna(r_str):
+                    continue
+                # logger.debug(f"Processing codex link in {lang}: {r_str}")
+                for r_match in re.finditer(r'<link="(.+?)">(.*?)</link>', r_str):
+                    if r_match is None:
+                        continue
+                    match_id = r_match.group(1)
+                    if match_id in self.links[lang] and self.links[lang][match_id] is False:
+                        # logger.info(f"Use codex title: {match_id} -> {r_match.group(2)}")
+                        self.links[lang][match_id] = r_match.group(2)
 
     def link_page_or_cate(self, name, lang, text=None, force_type=None):
+        name = re.sub(r'[\[\]]', '', name)  # prevent [/] in names
         auto_type = force_type == 'auto'
         if force_type == 'auto':
             force_type = None
@@ -69,6 +80,10 @@ class SubTags:
             force_type = force_type or "page"
         elif name in self.cates[lang]:
             force_type = force_type or "cate"
+        else:
+            # logger.info(f"Cannot find page or category for {name} in {lang}")
+            pass
+        
         if auto_type:
             force_type = force_type or 'page'
 
@@ -114,25 +129,88 @@ class SubTags:
 
     def repl_link(self, match: re.Match, lang, en_is_link):
         col = self.lang2col[lang]
+        # g0 = match.group(0)  # full link
         g1 = match.group(1)  # link
         g2 = match.group(2)  # text
+        # logger.debug(f"Replace link: {g1} -> {g2}, text is {g0}, lang is {lang}")
 
-        if g1 in self.links and self.links[g1]:
-            return self.link_page_or_cate(self.links[g1], lang, g2, 'auto')
+        if g1 in self.links[lang] and self.links[lang][g1]:
+            # logger.info(f"Replace link: {g1} -> {self.links[lang][g1]}, text is {g2}, gonna find it in {lang}")
+            return self.link_page_or_cate(self.links[lang][g1], lang, g2, 'auto')
 
         g1_trans = {
-            "ATMOSUIT": "ATMO_SUIT",
-            "JETSUIT": "JET_SUIT",
-            "LEADSUIT": "LEAD_SUIT",
-            "OXYGENMASK": "OXYGEN_MASK",
-            "RAWMETAL": "TAGS.METAL",
+            "ATMOSUIT" : "EQUIPMENT.PREFABS.ATMO_SUIT",
+            "BASICSINGLEHARVESTPLANT" : "CREATURES.SPECIES.BASICSINGLEHARVESTPLANT",
+            "BLEACHSTONE" : "ELEMENTS.BLEACHSTONE",
+            "BOOSTER": "CODEX.BIONICBOOSTER",
+            "BULBPLANT" : "CREATURES.SPECIES.BULBPLANT",
+            "CACTUSPLANT" : "CREATURES.SPECIES.CACTUSPLANT",
+            "CARROTPLANT" : "CREATURES.SPECIES.CARROTPLANT",
+            "CHECKPOINT" : "BUILDINGS.PREFABS.CHECKPOINT",
+            "CLOTHING" : "DUPLICANTS.MODIFIERS.CLOTHING",
+            "COLDBREATHER" : "CREATURES.SPECIES.COLDBREATHER",
+            "COLDWHEAT" : "CREATURES.SPECIES.COLDWHEAT",
+            "COMPOST" : "BUILDINGS.PREFABS.COMPOST",
+            "CRITTERTRAPPLANT" : "CREATURES.SPECIES.CRITTERTRAPPLANT",
+            "CYLINDRICA" : "CREATURES.SPECIES.CYLINDRICA",
+            "DEWDRIPPERPLANT" : "CREATURES.SPECIES.DEWDRIPPERPLANT",
+            "DINOFERN" : "CREATURES.SPECIES.DINOFERN",
+            "ELECTROBANK" : "ITEMS.INDUSTRIAL_PRODUCTS.ELECTROBANK",
+            "EQUIPMENT" : "UI.NEWBUILDCATEGORIES.EQUIPMENT",
+            "EVILFLOWER" : "CREATURES.SPECIES.EVILFLOWER",
+            "FILTERPLANT" : "CREATURES.SPECIES.FILTERPLANT",
+            "FLUSHTOILET" : "BUILDINGS.PREFABS.FLUSHTOILET",
+            "FLYTRAPPLANT" : "CREATURES.SPECIES.FLYTRAPPLANT",
+            "FOOD" : "UI.BUILDCATEGORIES.FOOD",
+            "GARDENDECORPLANT" : "CREATURES.SPECIES.GARDENDECORPLANT",
+            "GARDENFOODPLANT" : "CREATURES.SPECIES.GARDENFOODPLANT",
+            "GASGRASS" : "CREATURES.SPECIES.GASGRASS",
+            "HARDSKINBERRYPLANT" : "CREATURES.SPECIES.HARDSKINBERRYPLANT",
+            "HOSPITAL" : "ROOMS.TYPES.HOSPITAL",
+            "ICE" : "ELEMENTS.ICE",
+            "ICEFLOWER" : "CREATURES.SPECIES.ICEFLOWER",
+            "JETSUIT" : "EQUIPMENT.PREFABS.JET_SUIT",
+            "KELPPLANT" : "CREATURES.SPECIES.KELPPLANT",
+            "LEADSUIT" : "EQUIPMENT.PREFABS.LEAD_SUIT",
+            "LEAFYPLANT" : "CREATURES.SPECIES.LEAFYPLANT",
+            "LIME" : "ELEMENTS.LIME",
+            "MAGMA" : "ELEMENTS.MAGMA",
+            "MEDICALCOT" : "BUILDINGS.PREFABS.MEDICALCOT",
+            "METHANE" : "ELEMENTS.METHANE",
+            "MUSHBAR" : "ITEMS.FOOD.MUSHBAR",
+            "MUSHROOMPLANT" : "CREATURES.SPECIES.MUSHROOMPLANT",
+            "NIOBIUM" : "ELEMENTS.NIOBIUM",
+            "OXYFERN" : "CREATURES.SPECIES.OXYFERN",
+            "OXYGENMASK" : "EQUIPMENT.PREFABS.OXYGEN_MASK",
+            "POWERPLANT" : "ROOMS.TYPES.POWER_PLANT",
+            "PRICKLEFLOWER" : "CREATURES.SPECIES.PRICKLEFLOWER",
+            "PRICKLEGRASS" : "CREATURES.SPECIES.PRICKLEGRASS",
+            "RAPTOR" : "CREATURES.SPECIES.RAPTOR",
+            "RAWMETAL": "MISC.TAGS.METAL",
+            "REFRIGERATOR" : "BUILDINGS.PREFABS.REFRIGERATOR",
+            "ROCKCRUSHER" : "BUILDINGS.PREFABS.ROCKCRUSHER",
+            "RUST" : "ELEMENTS.RUST",
+            "SALTPLANT" : "CREATURES.SPECIES.SALTPLANT",
+            "SEALETTUCE" : "CREATURES.SPECIES.SEALETTUCE",
+            "SHOWER" : "BUILDINGS.PREFABS.SHOWER",
+            "SPACETREE" : "CREATURES.SPECIES.SPACETREE",
+            "STEAM" : "ELEMENTS.STEAM",
+            "STORAGELOCKER" : "BUILDINGS.PREFABS.STORAGELOCKER",
+            "SWAMPHARVESTPLANT" : "CREATURES.SPECIES.SWAMPHARVESTPLANT",
+            "SWAMPLILY" : "CREATURES.SPECIES.SWAMPLILY",
+            "TOEPLANT" : "CREATURES.SPECIES.TOEPLANT",
+            "TRAVELTUBEENTRANCE" : "BUILDINGS.PREFABS.TRAVELTUBEENTRANCE",
+            "VINEMOTHER" : "CODEX.VINEMOTHER",
+            "WINECUPS" : "CREATURES.SPECIES.WINECUPS",
+            "WORMPLANT" : "CREATURES.SPECIES.WORMPLANT",
         }
         if g1 in g1_trans:
+            # logger.info(f"replace id: {g1}")
             g1 = g1_trans[g1]
 
         df = self.df
         candidates = df[df.context.str.endswith(f".{g1}.NAME")]
-        if len(candidates) in [1, 2]:
+        if len(candidates) == 1: # if there is only one candidate, use it
             return self.link_page_or_cate(candidates.iloc[0][col], lang, g2, "page")
         if len(candidates) == 0:
             candidates = df[df.context.str.endswith(f".{g1}")]
@@ -145,10 +223,11 @@ class SubTags:
 
         if lang in ['en', 'zh', 'zh-hant']:
             for _, c in candidates.iterrows():
-                if (pd.isna(c[col])):
+                if (pd.isna(c[col]) or "link=" in c[col]): # No <link="..."> allowed in c[col]
                     continue
                 linked = self.link_page_or_cate(
                     self.strip_link(self.simple_sub(c[col])), lang, g2)
+                # logger.debug(f"Found candidate: {c[col]} -> {linked}, lang is {lang}")
                 if linked:
                     return linked
 
@@ -167,7 +246,8 @@ class SubTags:
         s = re.sub(r'<size=.+?>(.*?)</size>', r'\g<1>', s)
         s = re.sub(r'<smallcaps>(.*?)</smallcaps>',
                    r'<span class="ingame-smallcaps">\g<1></span>', s)
-        s = re.sub(r'^<link=".+?">(.*?)</link>$', r'\g<1>', s)
+        if s.count('<link="') == 1:
+            s = re.sub(r'^<link="\w+?">([^<]*?)</link>$', r'\g<1>', s)
         s = re.sub(r'<alpha=#(.+?)>((.|\n)*?)</color>',
                    lambda m: f"<span style='opacity:{int(m.group(1), 16) / int('ff', 16):.2f}'>"
                              f"{m.group(2)}</span>", s)
@@ -209,27 +289,31 @@ class SubTags:
             r'</color>|'
             r'</size>|'
             r'</indent>', unbalanced, s)
+        
+        if '<i>' in s and '</i>' not in s:
+            s += '</i>'
         return s
 
     def __call__(self, x):
         en_is_link = []
         self.curr = x
-        x.id = re.sub(r'<style="(.+?)">(.*?)</style>',
-                      lambda m: self.repl_style(m, 'en', en_is_link), x.id)
-        x.string = re.sub(r'<style="(.+?)">(.*?)</style>',
-                          lambda m: self.repl_style(m, 'zh', en_is_link), x.string)
-        if not pd.isna(x.hant):
-            x.hant = re.sub(r'<style="(.+?)">(.*?)</style>', lambda m: self.repl_style(m, 'zh-hant', en_is_link),
-                            x.hant)
+        # replace style to wikitext format in en / zh / zh-hant text
+        for lang in ["en", "zh", "zh-hant"]:
+            x_lang = x[self.lang2col[lang]]
+            if not pd.isna(x_lang):
+                x_lang = re.sub(r'<style="([^>]+?)">(.*?)</style>',
+                                  lambda m: self.repl_style(m, lang, en_is_link), x_lang)
+                x[self.lang2col[lang]] = x_lang
 
         # replace link to wikitext format in en / zh / zh-hant text
-        x.id = re.sub(r'<link="(.+?)">(.*?)</link>',
-                      lambda m: self.repl_link(m, 'en', en_is_link), x.id)
-        x.string = re.sub(r'<link="(.+?)">(.*?)</link>',
-                          lambda m: self.repl_link(m, 'zh', en_is_link), x.string)
-        if not pd.isna(x.hant):
-            x.hant = re.sub(r'<link="(.+?)">(.*?)</link>',
-                            lambda m: self.repl_link(m, 'zh-hant', en_is_link), x.hant)
+        for lang in ["en", "zh", "zh-hant"]:
+            x_lang = x[self.lang2col[lang]]
+            if not pd.isna(x_lang):
+                # logger.info(f"Before: {x_lang}")
+                x_lang = re.sub(r'<link="([^>]+?)">([^<]+?)</link>',
+                            lambda m: str(self.repl_link(m, lang, en_is_link) or ""), x_lang)
+                # logger.info(f"After: {x_lang}")
+                x[self.lang2col[lang]] = x_lang
 
         return x
 
