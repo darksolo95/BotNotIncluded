@@ -348,8 +348,8 @@ def main():
 
     # Generate OmegaT glossary_po.txt
     glossary_text = ""
-    for i, row in df.iterrows():
-        if "\n" not in row.id and "\n" not in row.string:
+    for row in df.itertuples():
+        if row.id and row.string and "\n" not in str(row.id) and "\n" not in str(row.string):
             glossary_text += f"{row.id}\t{row.string}\n"
     with open(path.join(utils.DIR_OUT, "glossary_po.txt"), "wb") as text_file:
         text_file.write(glossary_text.encode("utf-8"))

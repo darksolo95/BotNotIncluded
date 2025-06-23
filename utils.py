@@ -19,18 +19,29 @@ DIR_DATA = constant.DIR_DATA
 DIR_OUT = constant.DIR_OUT
 DIR_CODE = constant.DIR_CODE
 ONI_ROOT = constant.ONI_ROOT
+PO_ZH = path.join(ONI_ROOT, "OxygenNotIncluded_Data", "StreamingAssets", "strings", "strings_preinstalled_zh_klei.po")
+PO_EN = path.join(ONI_ROOT, "OxygenNotIncluded_Data", "StreamingAssets", "strings", "strings_template.pot")
 PO_HANT = constant.PO_HANT
 
 
-def get_str_data(po_name=path.join(ONI_ROOT, "OxygenNotIncluded_Data", "StreamingAssets", "strings", "strings_preinstalled_zh_klei.po")):
-    with open(path.join(DIR_DATA, po_name), 'rb') as f:
+def get_str_data(po_name=PO_ZH):
+    with open(PO_EN, 'rb') as fe:
+        while (l := fe.readline()).__len__() > 2:  # skip first
+            pass
+        catalog_t = pofile.read_po(fe)
+    df = pd.DataFrame([(m.context, m.id) for m in iter(catalog_t)])
+    df = df.rename(columns={0: "context", 1: "id"})
+    df.dropna(inplace=True)
+    df = df.astype({"context": "string"}, copy=False)
+
+    with open(path.join(po_name), 'rb') as f:
         while (l := f.readline()).__len__() > 2:  # skip first
             pass
         catalog = pofile.read_po(f)
-    df = pd.DataFrame([(m.context, m.id, m.string) for m in iter(catalog)])
-    df = df.rename(columns={0: "context", 1: "id", 2: "string"})
-    df.dropna(inplace=True)
-    df = df.astype({"context": "string"}, copy=False)
+    df_zh = pd.DataFrame([(m.context, m.string) for m in iter(catalog)])
+    df_zh = df_zh.rename(columns={0: "context", 1: "string"})
+    df_zh.dropna(inplace=True)
+    df_zh = df_zh.astype({"context": "string"}, copy=False)
 
     with open(PO_HANT, 'rb') as ft:
         while (l := ft.readline()).__len__() > 2:  # skip first
@@ -41,11 +52,12 @@ def get_str_data(po_name=path.join(ONI_ROOT, "OxygenNotIncluded_Data", "Streamin
     df_t.dropna(inplace=True)
     df_t = df_t.astype({"context": "string"}, copy=False)
 
+    df = df.merge(df_zh, how="left", on=["context"])
     df = df.merge(df_t, how="left", on=["context"])
     return df
 
 
-def sub_controls_str(df: pd.DataFrame, fields: Tuple[str] = ('id', 'string', 'hant')):
+def sub_controls_str(df: pd.DataFrame, fields: Tuple[str, ...] = ('id', 'string', 'hant')):
     """Substitute control str like "(ClickType/clicking)", "(ClickType/Click)" """
     prefix = 'STRINGS.UI.CONTROLS.'
     controls = {}
