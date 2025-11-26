@@ -75,7 +75,7 @@ def sub_controls_str(df: pd.DataFrame, fields: Tuple[str, ...] = ('id', 'string'
             sub_field(f)
         return row
 
-    return df.apply(sub_double_slash, axis="columns")
+    return pd.DataFrame(df.apply(sub_double_slash, axis="columns", result_type='expand'))
 
 
 def get_tags(site):
@@ -171,17 +171,25 @@ def filter_data_by_schema(data, schema):
     """根据schema规范，筛选json数据"""
     if isinstance(data, dict):
         filtered_data = {}
-        if schema.get('properties') is None:
-            return filtered_data
-        for k, v in data.items():
-            if k in schema['properties']:
-                filtered_data[k] = filter_data_by_schema(v, schema['properties'][k])
+        if 'properties' in schema:
+            for k, v in data.items():
+                if k in schema['properties']:
+                    filtered_data[k] = filter_data_by_schema(v, schema['properties'][k])
+        if 'additionalProperties' in schema:
+            additional_props_schema = schema['additionalProperties']
+            for k, v in data.items():
+                if ('properties' not in schema or k not in schema['properties']) and additional_props_schema is not False:
+                    if isinstance(additional_props_schema, dict):
+                        filtered_data[k] = filter_data_by_schema(v, additional_props_schema)
+                    elif additional_props_schema is True:
+                        filtered_data[k] = v
         return filtered_data
     elif isinstance(data, list):
-        if schema.get('items') is None:
+        if 'items' in schema:
+            item_schema = schema['items']
+            return [filter_data_by_schema(item, item_schema) for item in data]
+        else:
             return data
-        item_schema = schema['items']
-        return [filter_data_by_schema(item, item_schema) for item in data]
     else:
         return data
 

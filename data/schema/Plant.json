@@ -52,6 +52,32 @@
         "livesUnderWater"
       ]
     },
+    "seedProducer": {
+      "type": "object",
+      "properties": {
+        "seedDropChanceMultiplier": {
+          "type": "number"
+        },
+        "seedDropChances": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "seedDropChanceMultiplier",
+        "seedDropChances"
+      ]
+    },
+    "plantFiberProducer": {
+      "type": "object",
+      "properties": {
+        "amount": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "amount"
+      ]
+    },
     "seedInfo": {
       "type": "object",
       "properties": {

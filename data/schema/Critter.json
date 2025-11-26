@@ -261,6 +261,126 @@
     "deathTimer": {
       "type": "number"
     },
+    "scaleGrowthMonitorDef": {
+      "type": "object",
+      "properties": {
+        "defaultGrowthRate": {
+          "type": "number"
+        },
+        "targetAtmosphere": {
+          "type": "string"
+        },
+        "itemDroppedOnShear": {
+          "type": "string"
+        },
+        "dropMass": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "defaultGrowthRate",
+        "dropMass",
+        "itemDroppedOnShear",
+        "targetAtmosphere"
+      ]
+    },
+    "milkProductionMonitorDef": {
+      "type": "object",
+      "properties": {
+        "element": {
+          "type": "string"
+        },
+        "dietConditionForMilkProduction": {
+          "type": "string"
+        },
+        "effectId": {
+          "type": "string"
+        },
+        "Capacity": {
+          "type": "number"
+        },
+        "CaloriesPerCycle": {
+          "type": "number"
+        },
+        "HappinessRequired": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "Capacity",
+        "CaloriesPerCycle",
+        "element",
+        "HappinessRequired"
+      ]
+    },
+    "wellFedShearableDef": {
+      "type": "object",
+      "properties": {
+        "effectId": {
+          "type": "string"
+        },
+        "caloriesPerCycle": {
+          "type": "number"
+        },
+        "growthDurationCycles": {
+          "type": "number"
+        },
+        "levelCount": {
+          "type": "number"
+        },
+        "itemDroppedOnShear": {
+          "type": "string"
+        },
+        "dropMass": {
+          "type": "number"
+        },
+        "requiredDiet": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "caloriesPerCycle",
+        "dropMass",
+        "growthDurationCycles",
+        "itemDroppedOnShear",
+        "levelCount",
+        "requiredDiet"
+      ]
+    },
+    "beckoningMonitorDef": {
+      "type": "object",
+      "properties": {
+        "initialSongWeights": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "meteorID": {
+                "type": "string"
+              },
+              "weight": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "meteorID",
+              "weight"
+            ]
+          },
+          "caloriesPerCycle": {
+            "type": "number"
+          },
+          "effectId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "caloriesPerCycle",
+          "initialSongWeights",
+          "effectId"
+        ]
+      }
+    },
     "diet": {
       "type": "array",
       "items": {

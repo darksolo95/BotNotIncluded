@@ -53,7 +53,10 @@
     "id": {
       "type": "string"
     },
-    "slot": {
+    "Slot": {
+      "type": "string"
+    },
+    "wornID": {
       "type": "string"
     },
     "isWorn": {
@@ -218,12 +221,5 @@
         "coolingOperationalTemperature"
       ]
     }
-  },
-  "required": [
-    "dlcIds",
-    "id",
-    "primaryElement",
-    "slot",
-    "tags"
-  ]
+  }
 }
