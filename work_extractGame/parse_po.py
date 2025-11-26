@@ -113,14 +113,15 @@ class SubTags:
                     return linked
 
             elif lang.startswith("zh"):
+                linked = self.link_page_or_cate(match.group(2), lang)
+                if linked:
+                    return linked
                 if en_is_link:
                     islink = en_is_link.pop(0)
                     linked = self.link_page_or_cate(
                         match.group(2), lang, force_type=islink)
-                else:
-                    linked = self.link_page_or_cate(match.group(2), lang)
-                if linked:
-                    return linked
+                    if linked:
+                        return linked
         elif sty in ["logic_on", "logic_off", "hovercard_element"]:
             return f'<span class="ingame-{sty}">{match.group(2)}</span>'
         # if sty not in ["consumed", "produced"] and not match.group(2).startswith('{'):
@@ -333,7 +334,7 @@ def main():
     df.string = df.string.apply(SubTags.simple_sub)
     df.hant = df.hant.apply(SubTags.simple_sub)
 
-    df = df.apply(sub_tags, axis="columns")
+    df = pd.DataFrame(df.apply(sub_tags, axis="columns"))
 
     for prefix in df.prefix.unique():
         df_prefix = df[df.prefix == prefix]
