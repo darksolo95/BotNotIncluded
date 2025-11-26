@@ -418,7 +418,7 @@ def convert_data_2_lua(entityInfo: EntityInfo):
     dict_effects = {}
     with open(constant.dict_PATH_EXTRACT_FILE['db'], 'r', encoding='utf-8') as file:
         data = json.load(file)
-        # 技术
+        # 技术 TODO：添加同一建筑在不同 DLC 中解锁技术不一致的情况
         for tech in data['techs']:
             unlockedItems = tech.get('unlockedItems', None)
             if unlockedItems is None:

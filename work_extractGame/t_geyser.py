@@ -105,6 +105,7 @@ def getPercentileRange(input_tuples, cache_pp, opt: int = 0, p1=0.01, p2=0.99):
             dict_resample = X_alpha.get_percentile(l_eq / h1, h_eq / l1)
         else:
             dict_resample = X_alpha.get_percentile(l_eq * l1, h_eq * h1)
+        assert(dict_resample)
         return dict_resample[p1], dict_resample[p2]
     elif len(unequal_results) == 2:
         # 获取范围-双重积分
