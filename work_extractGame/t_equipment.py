@@ -4,37 +4,6 @@ import constant as constant
 from work_extractGame.model.EntityInfo import EntityInfo
 from work_extractGame.util.DataUtils import save_lua_by_schema
 
-
-def createWornItem(wornId, item, equipDef):
-    """损坏装备"""
-    item_worn = item.copy()
-    # 损坏物品
-    item_worn['isWorn'] = True
-    item_worn['id'] = wornId
-    item_worn['nameString'] = equipDef.get('WornName', None)
-    if item_worn.get('attribute', None):
-        del item_worn['attribute']
-    if item_worn.get('suitTank', None):
-        del item_worn['suitTank']
-    if item_worn.get('onEquipEffect', None):
-        del item_worn['onEquipEffect']
-    if item_worn.get('leadSuitTank', None):
-        del item_worn['leadSuitTank']
-    if item_worn.get('effectImmunites', None):
-        del item_worn['effectImmunites']
-    # 标签
-    AdditionalTags = equipDef.get('AdditionalTags', [])
-    if AdditionalTags:
-        list_add_tags = [mItem['Name'] for mItem in AdditionalTags]
-        if list_add_tags and len(list_add_tags) > 0:
-            list_tags = item_worn.get('tags', None)
-            if list_tags and len(list_tags) > 0:
-                item_worn['tags'] = list(set(list_tags + list_add_tags))
-            else:
-                item_worn['tags'] = list_add_tags
-    return item_worn
-
-
 def convert_data_2_lua(entityInfo: EntityInfo):
     dict_equipmentDefs = {}
     dict_output = {}
@@ -53,16 +22,10 @@ def convert_data_2_lua(entityInfo: EntityInfo):
             item['forbiddenDlcIds'] = item['kPrefabID'].get('forbiddenDlcIds', None)
             if item.get('tags', None):
                 item['tags'] = [mItem['Name'] for mItem in item['tags']]
-            equipDef = dict_equipmentDefs[entityId]
+            equipDef = dict_equipmentDefs.get(entityId, None)
             if equipDef:
                 item['slot'] = equipDef['Slot']
-                # 定义损坏物品
-                wornId = equipDef.get('wornID', None)
-                if wornId:
-                    dict_output[wornId] = createWornItem(wornId, item, equipDef)
-                item['wornId'] = wornId
-            # 损坏物品,不存在以下属性
-            if equipDef:
+                item['wornID'] = equipDef['wornID']
                 # 防护属性
                 AttributeModifiers = equipDef.get('AttributeModifiers', None)
                 if AttributeModifiers and len(AttributeModifiers) > 0:
@@ -79,6 +42,10 @@ def convert_data_2_lua(entityInfo: EntityInfo):
                         clothingInfo = target0.get('clothingInfo', None)
                         if clothingInfo:
                             item['onEquipEffect'] = clothingInfo
+            else:
+                # 定义损坏物品
+                item['isWorn'] = True
+
             dict_output[item['name']] = item
     save_lua_by_schema(entityInfo, dict_output)
     return True

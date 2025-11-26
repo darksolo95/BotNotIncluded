@@ -35,6 +35,7 @@ def getTraitAttribute(entityId: str, attributeId: str, dict_trait):
 def convert_data_2_lua(entityInfo: EntityInfo):
     # 读取id列表
     list_species = get_species_list(entityInfo.codex.upper())
+    assert(list_species)
     # 读取数据
     with open(constant.dict_PATH_EXTRACT_FILE['entities'], 'r', encoding='utf-8') as file:
         data = json.load(file).get("entities", None)
@@ -69,6 +70,8 @@ def convert_data_2_lua(entityInfo: EntityInfo):
                 if item and item.get('babyId') == babyId:
                     item['incubationCycles'] = 100 / (600 * egg['incubatorMonitorDef']['baseIncubationRate'])
     # 组装数据
+    with open(constant.dict_PATH_EXTRACT_FILE['element'], 'r', encoding='utf-8') as file_elem:
+        data_elem = json.load(file_elem).get("elementTable", None)
     for entityId, item in dict_output.items():
         item['id'] = entityId
         item['requiredDlcIds'] = item['kPrefabID'].get('requiredDlcIds', None)
@@ -84,6 +87,38 @@ def convert_data_2_lua(entityInfo: EntityInfo):
         babyMonitorDef = dict_babayMonitorDef.get(entityId)
         if babyMonitorDef:
             item['babyMonitorDef'] = babyMonitorDef
+        # 鳞片
+        scaleGrowthMonitorDef = item.get('scaleGrowthMonitorDef', None)
+        if scaleGrowthMonitorDef and 'itemDroppedOnShear' in scaleGrowthMonitorDef:
+            if scaleGrowthMonitorDef['itemDroppedOnShear']['IsValid']:
+                scaleGrowthMonitorDef['itemDroppedOnShear'] = \
+                    scaleGrowthMonitorDef['itemDroppedOnShear']['Name']
+            else:
+                scaleGrowthMonitorDef['itemDroppedOnShear'] = None
+            if 'targetAtmosphere' in scaleGrowthMonitorDef:
+                scaleGrowthMonitorDef['targetAtmosphere'] = data_elem[str(scaleGrowthMonitorDef['targetAtmosphere'])]['tag']['Name']
+        # 产乳
+        milkProductionMonitorDef = item.get('milkProductionMonitorDef', None)
+        if milkProductionMonitorDef and 'element' in milkProductionMonitorDef:
+            milkProductionMonitorDef['element'] = data_elem[str(milkProductionMonitorDef['element'])]['tag']['Name']
+        # 需要饱食状态才生长的鳞片
+        wellFedShearableDef = item.get('wellFedShearableDef', None)
+        if wellFedShearableDef and 'itemDroppedOnShear' in wellFedShearableDef:
+            if wellFedShearableDef['itemDroppedOnShear']['IsValid']:
+                wellFedShearableDef['itemDroppedOnShear'] = \
+                    wellFedShearableDef['itemDroppedOnShear']['Name']
+            else:
+                wellFedShearableDef['itemDroppedOnShear'] = None
+            if 'requiredDiet' in wellFedShearableDef:
+                wellFedShearableDef['requiredDiet'] = \
+                    wellFedShearableDef['requiredDiet']['Name']
+        # 召唤流星
+        beckoningMonitorDef = item.get('beckoningMonitorDef', None)
+        if beckoningMonitorDef and 'initialSongWeights' in beckoningMonitorDef:
+            for choice in beckoningMonitorDef['initialSongWeights']:
+                if 'meteorID' in choice:
+                    choice['meteorID'] = choice['meteorID']['Name']
+        # 饮食
         list_diet = []
         creatureCalorieMonitorDef = item.get('creatureCalorieMonitorDef', None)
         if creatureCalorieMonitorDef:

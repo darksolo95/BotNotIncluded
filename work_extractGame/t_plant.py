@@ -94,6 +94,13 @@ def convert_data_2_lua(entityInfo: EntityInfo):
         # 环境吸收
         item['elementConsumer'] = getElementConsumer(item, dict_SimHashes)
         item['elementConverters'] = getElementConverters(item, dict_SimHashes, dict_Disease)
+        # 分支
+        branch = item['outBranch']
+        if branch and branch['MAX_BRANCH_COUNT'] > 0:
+            item['plantBranchGrowerDef'] = branch
+        # 种子
+        if item['seedProducer'] and 'seedInfo' in item['seedProducer']:
+            item['seedInfo'] = item['seedProducer'].get('seedInfo', None)
         dict_output[id] = item
     save_lua_by_schema(entityInfo, dict_output)
     return True
